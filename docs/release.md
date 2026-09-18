@@ -82,7 +82,10 @@ sees a password and never touches the `flea` or `flea-git` packages.
 4. **The private half goes to the repository.** On GitHub, Settings, Secrets and variables,
    Actions, New repository secret, named exactly `AUR_SSH_KEY`, with the whole of the
    `flea-aur-deploy` file as its value, `BEGIN` and `END` lines included.
-5. **Delete both files** from the disk they were made on. The AUR has the public half, GitHub has
+5. **Prove the pair while the private half is still on disk.** `ssh -T aur@aur.archlinux.org -i
+   flea-aur-deploy` answers with the account name the key maps to, which has to be the account
+   from step 1. A GitHub secret cannot be read back, so this is the last moment the check can run.
+6. **Delete both files** from the disk they were made on. The AUR has the public half, GitHub has
    the private half, and nothing else needs either.
 
 That is all: the next `vX.Y.Z` tag publishes `flea-bin`. The commit on the AUR is authored by the
@@ -92,8 +95,9 @@ to warning and skipping.
 
 If the push is ever refused with `permission denied`, the public key in the AUR account and the
 private key in the secret are not a pair, or the package already exists under an account that does
-not hold this key. `ssh -T aur@aur.archlinux.org -i flea-aur-deploy` answers with the account name
-the key maps to.
+not hold this key. The private half is gone from disk by then and the secret cannot be read back,
+so the repair is a new pair: steps 2 to 6 again, replacing the old line in the AUR account and the
+old value of the secret.
 
 ## By hand
 
