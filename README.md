@@ -48,8 +48,8 @@ uses it. If this machine should never route through the phone, tell NetworkManag
 omarchy pkg add flea
 ```
 
-Or skip the compile: `flea-bin` is the same package with the binary prebuilt for x86_64 and aarch64
-by every release, and installs in seconds.
+Or skip the compile: `flea-bin` is the same package with a prebuilt binary, one for x86_64 and one
+for aarch64 in every release, and installs in seconds.
 
 ```bash
 omarchy pkg aur add flea-bin

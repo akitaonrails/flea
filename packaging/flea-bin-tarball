@@ -23,10 +23,12 @@ outdir=$4
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(dirname "$here")
 
-case "$version" in
-  [0-9]*.[0-9]*.[0-9]*) ;;
-  *) echo "flea-bin-tarball: version '$version' is not X.Y.Z" >&2; exit 2 ;;
-esac
+# The same expression the release workflow holds the tag to: a glob's * is not limited to digits,
+# so it let 1x.2.3 and 1.2.3.4 through to the binary's own answer further down.
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "flea-bin-tarball: version '$version' is not X.Y.Z" >&2
+  exit 2
+fi
 
 # The ELF machine field is the proof that the aarch64 leg did not package an x86_64 binary, or the
 # reverse: e_machine sits at offset 18, little-endian, 0x3e for x86_64 and 0xb7 for aarch64.
