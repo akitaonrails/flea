@@ -79,20 +79,26 @@ Item {
         // all keep counting rows and never a heading. The model is already grouped, so consecutive
         // rows of one group sit under one heading; ui/js/Picker.js names each group.
         section.property: "group"
-        section.delegate: Text {
+        section.delegate: Item {
+            id: heading
             required property string section
+            readonly property string heLabel: Picker.groupHeading(section)
             width: rail.width
-            leftPadding: Theme.spacing.rowPaddingX
-            topPadding: Math.ceil(font.pixelSize * 0.15) + Theme.spacing.gap
-            bottomPadding: Theme.spacing.gap
-            text: Picker.groupHeading(section)
-            visible: text.length > 0
-            height: visible ? implicitHeight : 0
-            color: Theme.color.muted
-            font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
-            font.letterSpacing: 1
-            textFormat: Text.PlainText
+            // Zero for a group with no heading, Recent's among them, so its lone row sits at the top
+            // with no empty band above it; otherwise the label's own box.
+            height: heading.heLabel.length > 0 ? label.implicitHeight : 0
+            Text {
+                id: label
+                x: Theme.spacing.rowPaddingX
+                topPadding: Math.ceil(font.pixelSize * 0.15) + Theme.spacing.gap
+                bottomPadding: Theme.spacing.gap
+                text: heading.heLabel
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.caption
+                font.letterSpacing: 1
+                textFormat: Text.PlainText
+            }
         }
         Keys.onTabPressed: function(event) { root.picker.stepFocus(rail, (event.modifiers & Qt.ShiftModifier) !== 0) }
         Keys.onBacktabPressed: root.picker.stepFocus(rail, true)
