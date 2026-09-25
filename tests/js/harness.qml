@@ -1,5 +1,6 @@
 import QtQuick
 import "archive.js" as ArchiveSuite
+import "clipshare.js" as ClipShareSuite
 import "collide.js" as CollideSuite
 import "columns.js" as ColumnsSuite
 import "contrast.js" as ContrastSuite
@@ -85,7 +86,7 @@ Item {
         }
 
         var suites = [
-            ["archive", ArchiveSuite], ["collide", CollideSuite], ["columns", ColumnsSuite], ["contrast", ContrastSuite],
+            ["archive", ArchiveSuite], ["clipshare", ClipShareSuite], ["collide", CollideSuite], ["columns", ColumnsSuite], ["contrast", ContrastSuite],
             ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dst", DstSuite],
             ["edmonton", DstSuite],
             ["errors", ErrorsSuite], ["facts", FactsSuite], ["filter", FilterSuite], ["filter-cursor", FilterCursorSuite],
