@@ -23,6 +23,14 @@ function labels(rows) {
     return rows.map(function (e) { return e.label }).join(",")
 }
 
+// A parser row the way ui/DeviceMounts.qml rebuilds it into a rail entry: the group is the
+// Service's to add, so a releaseMark check has to add it the same way.
+function entry(r) {
+    return { path: r.path, label: r.label, group: "device", kind: r.kind, device: r.device,
+             mounted: r.mounted, removable: r.removable, size: r.size,
+             volumeMenu: r.volumeMenu === true, attached: r.attached === true, glyph: "drive" }
+}
+
 function run(check) {
     var off = Devices.parseDevices(unmountedBox, false)
     check("with the switch off the rail is the one 0.2.1 drew", labels(off), "nvme0n1")
@@ -78,11 +86,13 @@ function run(check) {
     // A VeraCrypt file container is that loop with a crypt leaf on it: the loop half is the live
     // capture above, the crypt leaf the dm shape tests/js/devices.js's live listing already records.
     var veracrypt = '{"blockdevices":[{"name":"loop1","path":"/dev/loop1","label":null,"mountpoints":[null],"rm":false,"tran":null,"size":67108864,"type":"loop","model":null,"fstype":null,"parttypename":null,'
-                  + '"children":[{"name":"veracrypt1","path":"/dev/mapper/veracrypt1","label":"SECRETS","mountpoints":["/run/media/gm/vc"],"rm":false,"size":66846720,"type":"crypt","model":null,"fstype":"ext4","parttypename":null}]}]}'
+                  + '"children":[{"name":"veracrypt1","path":"/dev/mapper/veracrypt1","label":"SECRETS","mountpoints":["/mnt/veracrypt1"],"rm":false,"size":66846720,"type":"crypt","model":null,"fstype":"ext4","parttypename":null}]}]}'
     var vc = Devices.parseDevices(veracrypt, false)
     check("an unlocked VeraCrypt container is a rail row, without any switch", labels(vc), "SECRETS")
     check("its row is the crypt mapping, which is the device gio acts on",
           vc[0].device + "|" + vc[0].attached, "/dev/mapper/veracrypt1|true")
+    check("and the loop carries that wherever VeraCrypt mounted it, /mnt/veracrypt1 included",
+          RailMenu.releaseMark(entry(vc[0])), "unmountVolume")
 
     // The dismounted half of both: an attached loop nobody mounted is plumbing rather than a place,
     // on either switch, which also keeps a squashfs loop farm off the rail on a box that grows one.
@@ -90,14 +100,22 @@ function run(check) {
     check("an idle loop is not a row", Devices.parseDevices(idle, false).length, 0)
     check("and rule 1's switch does not surface it either", Devices.parseDevices(idle, true).length, 0)
 
-    // A crypt leaf on a real partition is attached the same way: unlocking it was the operator's act,
-    // so releasing it must not wait for a switch that exists for spare EFI and recovery partitions.
+    // A crypt leaf on a real partition is attached only where udisks mounted an interactive unlock:
+    // /home on a second encrypted disk is crypttab's boot-time mapping, and giving it the row's
+    // release mark is the finding CodeRabbit raised on PR 200, so it keeps its Unmount in the menu.
     var innerCrypt = '{"blockdevices":[{"name":"sdc","path":"/dev/sdc","label":null,"mountpoints":[null],"rm":false,"tran":null,"size":2000398934016,"type":"disk","model":"Samsung SSD 870","fstype":null,"parttypename":null,'
                    + '"children":[{"name":"sdc1","path":"/dev/sdc1","label":null,"mountpoints":[null],"rm":false,"size":2000398934016,"type":"part","model":null,"fstype":"crypto_LUKS","parttypename":"Linux filesystem",'
-                   + '"children":[{"name":"vault","path":"/dev/mapper/vault","label":"Vault","mountpoints":["/mnt/vault"],"rm":false,"size":2000380000256,"type":"crypt","model":null,"fstype":"ext4","parttypename":null}]}]}]}'
+                   + '"children":[{"name":"home","path":"/dev/mapper/home","label":"home","mountpoints":["/home"],"rm":false,"size":2000380000256,"type":"crypt","model":null,"fstype":"ext4","parttypename":null}]}]}]}'
     var vault = Devices.parseDevices(innerCrypt, false)
-    check("an unlocked LUKS volume on a real disk is attached too",
-          vault.length === 1 ? vault[0].label + "|" + vault[0].attached : labels(vault), "Vault|true")
+    check("a boot-unlocked LUKS home is a row that is not attached",
+          vault.length === 1 ? vault[0].label + "|" + vault[0].attached : labels(vault), "home|false")
+    check("so it draws no release mark, keeping its unmount in the menu and Ctrl+E",
+          vault.length === 1 ? RailMenu.releaseMark(entry(vault[0])) : "no row", "")
+    var unlockedCrypt = innerCrypt.replace('"mountpoints":["/home"]', '"mountpoints":["/run/media/gm/home"]')
+    var unlocked = Devices.parseDevices(unlockedCrypt, false)
+    check("the same mapping udisks mounted for an interactive unlock is attached",
+          unlocked.length === 1 ? unlocked[0].attached + "|" + RailMenu.releaseMark(entry(unlocked[0])) : labels(unlocked),
+          "true|unmountVolume")
 
     // What attached carries: the open and the release on the row's menu, no Extras switch asked.
     var attached = { group: "device", kind: "volume", mounted: true, removable: false, attached: true }

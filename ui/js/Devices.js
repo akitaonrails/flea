@@ -156,15 +156,24 @@ function devicePath(node) {
 // The label ladder is the filesystem label, then the drive's product name, then the kernel name.
 // volumeMenu says the row was built under RailAdditions rule 1, which is what gives it the Mount,
 // Open and Unmount rows; without the switch the row carries the menu it carried in 0.2.1.
-// attached says the operator put this volume here and will take it away again: a leaf under a loop
-// device, or a crypt mapping wherever it sits, because an unlocked VeraCrypt or LUKS volume is
-// released as routinely as it was opened. ui/js/Mounts.js railMenu reads it.
+// attached says the operator put this volume here and will take it away again, so it carries the
+// row's release: everything on a loop device, because a loop cannot survive a reboot and is the
+// operator's by construction, and a crypt mapping only where udisks mounts an interactive unlock.
+// Crypt type alone is not the operator's act (CodeRabbit on PR 200): /home on a second encrypted
+// disk is crypttab's boot-time mapping, and it must keep its Unmount in the menu and off the row.
 function volumeRow(n, model, unplugs, unmounted, attached) {
     var path = mountOf(n)
     var label = n.label ? String(n.label) : (model.length > 0 ? model : String(n.name))
+    var unlocked = String(n.type || "") === "crypt" && interactiveMount(path)
     return { kind: "volume", label: label, device: devicePath(n), path: path, mounted: path.length > 0,
              removable: unplugs === true, size: deviceBytes(n.size), volumeMenu: unmounted === true,
-             attached: attached === true || String(n.type || "") === "crypt" }
+             attached: attached === true || unlocked }
+}
+
+// Where udisks puts a mount somebody asked for in a session, against the fstab and crypttab
+// territory a boot mounts by itself: the same split Nautilus draws its own unmount control on.
+function interactiveMount(path) {
+    return path.indexOf("/run/media/") === 0 || path.indexOf("/media/") === 0
 }
 
 // An unavailable or malformed capacity stays absent; only the delegate formats valid byte counts.
